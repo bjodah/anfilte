@@ -1,0 +1,38 @@
+#!/usr/bin/env bash -u
+#
+# Usage:
+#
+#  $ ANFILT_CHANNELS="bjodah" anfilt-build /path/to/conda-recipe/ /path/to/output
+#
+#
+if [[ -z "$ANFILT_CACHE_DIR" ]]; then
+    ANFILT_CACHE_DIR=$(mktemp -d)
+    cleanup() {
+        echo "Remove cache dir ($ANFILT_CACHE_DIR)?"
+        rm -ri "$ANFILT_CACHE_DIR"
+    }
+    trap cleanup INT TERM EXIT
+fi
+RECIPE_PATH=$(realpath $1)
+DEST_PATH=$(realpath ${2:-.})
+
+CMD="set -xe; "
+for CONDA_CHANNEL in ${ANFILT_CHANNELS:-""}; do
+    ADDCHANNEL="conda config --add channels ${CONDA_CHANNEL}; "
+    CMD="$CMD $ADDCHANNEL"
+done
+CMD="$CMD conda-build "${@:2}" --output-folder /home/conda/anfilte-out /home/conda/anfilte-recipe"
+set -x
+CONTAINERNAME=anfilte
+HOST_USER=${SUDO_USER:-${LOGNAME}}
+
+docker run --name $CONTAINERNAME \
+       -e HOST_USER_ID=$(id -u ${HOST_USER}) \
+       -v "$RECIPE_PATH":/home/conda/anfilte-recipe \
+       -v "$DEST_PATH":/home/conda/anfilte-out \ 
+       -it condaforge/linux-anvil \
+       bash -c "$CMD"
+
+EXIT_CODE=$(docker inspect ${CONTAINERNAME} --format='{{.State.ExitCode}}')
+docker rm $CONTAINERNAME
+exit ${EXIT_CODE}
