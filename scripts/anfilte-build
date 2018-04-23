@@ -1,35 +1,45 @@
-#!/usr/bin/env bash -u
+#!/bin/bash -u
 #
 # Usage:
 #
-#  $ ANFILT_CHANNELS="bjodah" anfilt-build /path/to/conda-recipe/ /path/to/output
+#  $ ANFILTE_CHANNELS="bjodah" anfilte-build /path/to/conda-recipe/ /path/to/output
 #
 #
-if [[ -z "$ANFILT_CACHE_DIR" ]]; then
-    ANFILT_CACHE_DIR=$(mktemp -d)
+if [[ -z "$ANFILTE_CACHE_DIR" ]]; then
+    ANFILTE_CACHE_DIR=$(mktemp -d)
+    echo "\$ANFILTE_CACHE_DIR unset, created cache dir: $ANFILTE_CACHE_DIR"
     cleanup() {
-        echo "Remove cache dir ($ANFILT_CACHE_DIR)?"
-        rm -ri "$ANFILT_CACHE_DIR"
+        echo "Remove cache dir \$ANFILTE_CACHE_DIR: $ANFILTE_CACHE_DIR?"
+        rm -ri "$ANFILTE_CACHE_DIR"
     }
     trap cleanup INT TERM EXIT
+else
+    echo "Using \$ANFILTE_CACHE_DIR: $ANFILTE_CACHE_DIR"
 fi
-RECIPE_PATH=$(realpath $1)
-DEST_PATH=$(realpath ${2:-.})
+if [[ ! -d "$ANFILTE_CACHE_DIR/pkgs" ]]; then
+    mkdir "$ANFILTE_CACHE_DIR/pkgs"
+fi
 
-CMD="set -xe; "
-for CONDA_CHANNEL in ${ANFILT_CHANNELS:-""}; do
-    ADDCHANNEL="conda config --add channels ${CONDA_CHANNEL}; "
-    CMD="$CMD $ADDCHANNEL"
+MOUNT_PATH=$(realpath $1)
+REL_RECIPE_PATH=$2
+DEST_PATH=$(realpath $3)
+
+CMD="set -xe"
+for CONDA_CHANNEL in ${ANFILTE_CHANNELS:-""}; do
+    ADDCHANNEL="conda config --add channels ${CONDA_CHANNEL}"
+    CMD="$CMD; $ADDCHANNEL"
 done
-CMD="$CMD conda-build "${@:2}" --output-folder /home/conda/anfilte-out /home/conda/anfilte-recipe"
+CMD="$CMD; cd /home/conda/anfilte-work; conda-build "${@:4}" --output-folder /home/conda/anfilte-out $REL_RECIPE_PATH"
 set -x
 CONTAINERNAME=anfilte
 HOST_USER=${SUDO_USER:-${LOGNAME}}
 
 docker run --name $CONTAINERNAME \
        -e HOST_USER_ID=$(id -u ${HOST_USER}) \
-       -v "$RECIPE_PATH":/home/conda/anfilte-recipe \
-       -v "$DEST_PATH":/home/conda/anfilte-out \ 
+       -e CONDA_PKGS_DIRS="/pkgs" \
+       -v "$MOUNT_PATH":/home/conda/anfilte-work \
+       -v "$DEST_PATH":/home/conda/anfilte-out \
+       -v "$ANFILTE_CACHE_DIR/pkgs":/pkgs
        -it condaforge/linux-anvil \
        bash -c "$CMD"
 
