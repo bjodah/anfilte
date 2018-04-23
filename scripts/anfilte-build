@@ -6,7 +6,7 @@
 #
 #
 if [[ -z "$ANFILTE_CACHE_DIR" ]]; then
-    ANFILTE_CACHE_DIR=$(mktemp -d)
+    ANFILTE_CACHE_DIRILTE_CACHE_DIR=$(mktemp -d)
     echo "\$ANFILTE_CACHE_DIR unset, created cache dir: $ANFILTE_CACHE_DIR"
     cleanup() {
         echo "Remove cache dir \$ANFILTE_CACHE_DIR: $ANFILTE_CACHE_DIR?"
@@ -25,10 +25,12 @@ REL_RECIPE_PATH=$2
 DEST_PATH=$(realpath $3)
 
 CMD="set -xe"
-for CONDA_CHANNEL in ${ANFILTE_CHANNELS:-""}; do
-    ADDCHANNEL="conda config --add channels ${CONDA_CHANNEL}"
-    CMD="$CMD; $ADDCHANNEL"
-done
+if [[ ${ANFILTE_CHANNELS:-""} != "" ]]; then
+    for CONDA_CHANNEL in ${ANFILTE_CHANNELS:-""}; do
+        ADDCHANNEL="conda config --add channels ${CONDA_CHANNEL}"
+        CMD="$CMD; $ADDCHANNEL"
+    done
+fi
 CMD="$CMD; cd /home/conda/anfilte-work; conda-build "${@:4}" --output-folder /home/conda/anfilte-out $REL_RECIPE_PATH"
 set -x
 CONTAINERNAME=anfilte
@@ -39,7 +41,7 @@ docker run --name $CONTAINERNAME \
        -e CONDA_PKGS_DIRS="/pkgs" \
        -v "$MOUNT_PATH":/home/conda/anfilte-work \
        -v "$DEST_PATH":/home/conda/anfilte-out \
-       -v "$ANFILTE_CACHE_DIR/pkgs":/pkgs
+       -v "$ANFILTE_CACHE_DIR/pkgs":/pkgs \
        -it condaforge/linux-anvil \
        bash -c "$CMD"
 
