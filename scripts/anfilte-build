@@ -36,7 +36,13 @@ set -x
 CONTAINERNAME=anfilte
 HOST_USER=${SUDO_USER:-${LOGNAME}}
 
-docker run --name $CONTAINERNAME \
+if groups | grep docker; then
+    DOCKERCMD=docker
+else
+    DOCKERCMD="sudo docker"
+fi
+
+${DOCKERCMD} run --name $CONTAINERNAME \
        -e HOST_USER_ID=$(id -u ${HOST_USER}) \
        -e CONDA_PKGS_DIRS="/pkgs" \
        -v "$MOUNT_PATH":/home/conda/anfilte-work \
@@ -45,6 +51,6 @@ docker run --name $CONTAINERNAME \
        -it condaforge/linux-anvil \
        bash -c "$CMD"
 
-EXIT_CODE=$(docker inspect ${CONTAINERNAME} --format='{{.State.ExitCode}}')
-docker rm $CONTAINERNAME
+EXIT_CODE=$($DOCKERCMD inspect ${CONTAINERNAME} --format='{{.State.ExitCode}}')
+$DOCKERCMD rm $CONTAINERNAME
 exit ${EXIT_CODE}
