@@ -19,6 +19,9 @@ fi
 if [[ ! -d "$ANFILTE_CACHE_DIR/pkgs" ]]; then
     mkdir "$ANFILTE_CACHE_DIR/pkgs"
 fi
+if [[ ! -d "$ANFILTE_CACHE_DIR/conda-bld" ]]; then
+    mkdir "$ANFILTE_CACHE_DIR/conda-bld"
+fi
 
 MOUNT_PATH=$(realpath $1)
 REL_RECIPE_PATH=$2
@@ -45,9 +48,11 @@ fi
 ${DOCKERCMD} run --name $CONTAINERNAME \
        -e HOST_USER_ID=$(id -u ${HOST_USER}) \
        -e CONDA_PKGS_DIRS="/pkgs" \
+       -e CONDA_BLD_PATH="/conda-bld" \
        -v "$MOUNT_PATH":/home/conda/anfilte-work \
        -v "$DEST_PATH":/home/conda/anfilte-out \
        -v "$ANFILTE_CACHE_DIR/pkgs":/pkgs \
+       -v "$ANFILTE_CACHE_DIR/conda-bld":/conda-bld \
        -it condaforge/linux-anvil \
        bash -c "$CMD"
 
