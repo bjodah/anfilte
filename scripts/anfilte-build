@@ -53,7 +53,7 @@ ${DOCKERCMD} run --name $CONTAINERNAME \
        -v "$DEST_PATH":/home/conda/anfilte-out \
        -v "$ANFILTE_CACHE_DIR/pkgs":/pkgs \
        -v "$ANFILTE_CACHE_DIR/conda-bld":/conda-bld \
-       -it condaforge/linux-anvil \
+       -it condaforge/linux-anvil-comp7 \
        bash -c "$CMD"
 
 EXIT_CODE=$($DOCKERCMD inspect ${CONTAINERNAME} --format='{{.State.ExitCode}}')
