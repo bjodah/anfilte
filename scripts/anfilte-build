@@ -45,7 +45,8 @@ else
     DOCKERCMD="sudo docker"
 fi
 
-${DOCKERCMD} run --name $CONTAINERNAME \
+set +u
+${DOCKERCMD} run --name $CONTAINERNAME ${ANFILTE_DOCKER_ARGS} \
        -e HOST_USER_ID=$(id -u ${HOST_USER}) \
        -e CONDA_PKGS_DIRS="/pkgs" \
        -e CONDA_BLD_PATH="/conda-bld" \
